@@ -29,7 +29,7 @@ public class Updater extends javax.swing.JFrame {
     // CONFIGURAÇÕES - ALTERE AQUI
     // =============================================
     // Versão atual do seu programa (ex: "1.0", "1.1", "2.0")
-    public static final String VERSAO_ATUAL = "1.1.0";
+    public static final String VERSAO_ATUAL = "1.2.0";
 
     // URL do arquivo de texto com a versão mais recente
     // Exemplo com GitHub Raw:
