@@ -5,43 +5,174 @@
  */
 package ui;
 
-import crypto.KeyLoader;
-import crypto.LicenseService;
-import crypto.LicenseValidator;
-import crypto.PublicKeyLoader;
-import db.LicenseDAO;
-import java.awt.HeadlessException;
+import banco.BancoDados;
+import banco.BancoUsuarios;
 import java.io.File;
-import java.io.IOException;
 import java.security.PrivateKey;
-import java.security.PublicKey;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.swing.ImageIcon;
-import javax.swing.JFileChooser;
+import javax.swing.JInternalFrame;
 import javax.swing.JOptionPane;
-import util.LicenseDateUtil;
-import util.LicenseExporter;
+import util.RSAUtil;
 
 /**
  *
  * @author Maxwell
  */
 public class GeradorLicencaUI extends javax.swing.JFrame {
-    
+
+    private BancoUsuarios bancoUsuarios;
+    private BancoDados bancoDados;
+    private PrivateKey chavePrivada;
+    private LoginUI login;
+
     /**
      * Creates new form GeradorLicencaUI
+     * @param bancoUsuarios
+     * @param bancoDados
+     * @param login
      */
-    public GeradorLicencaUI() {
+    public GeradorLicencaUI(BancoUsuarios bancoUsuarios, BancoDados bancoDados, LoginUI login) {
         initComponents();
+        this.bancoUsuarios = bancoUsuarios;
+        this.bancoDados = bancoDados;
+        this.login = login;
+        verificarChaves();
         //Imagem do software
-        ImageIcon iconUCKG = new ImageIcon(this.getClass().getClassLoader().getResource("img/UltraCipaKEY.png"));
-        this.setIconImage(iconUCKG .getImage());
-        
-        txtHWID.setText(util.HWID.get());
-        txtHWID.setEditable(true);
-        
+        ImageIcon iconUCKG = new ImageIcon(this.getClass().getClassLoader().getResource("img/ultracipa_27x27.png"));
+        this.setIconImage(iconUCKG.getImage());
+
+        try {
+            bancoDados = new BancoDados();
+            // Carrega chave privada (deve existir na pasta "chaves/")
+            chavePrivada = RSAUtil.carregarPrivada("chaves/chave_privada.key");
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(null,
+                    "ERRO AO INICIAR: " + e.getMessage()
+                    + "\nCRIE AS CHAVES PRIMEIRO (menu Ferramentas).");
+        }
+
     }//Construtor
+
+    private void verificarChaves() {
+        java.io.File chavePrivada = new java.io.File("chaves/chave_privada.key");
+        java.io.File chavePublica = new java.io.File("chaves/chave_publica.key");
+
+        if (chavePrivada.exists() && chavePublica.exists()) {
+            menuGerarChaves.setEnabled(false); // ← desativa o submenu
+        }
+    }
+
+// Ação do submenu "Gerar Chaves RSA"
+    private void menuGerarChaves() {
+
+        // Verifica se as chaves já existem
+        java.io.File chavePrivada = new java.io.File("chaves/chave_privada.key");
+        java.io.File chavePublica = new java.io.File("chaves/chave_publica.key");
+
+        if (chavePrivada.exists() && chavePublica.exists()) {
+            // Avisa que o item está desativado e o motivo
+            JOptionPane.showMessageDialog(null,
+                    "ESTE ITEM ESTÁ DESATIVADO!\n\n"
+                    + "AS CHAVES RSA JÁ FORAM GERADAS ANTERIORMENTE.\n"
+                    + "POR SEGURANÇA, NÃO É PERMITIVO GERAR NOVAS CHAVES,\n"
+                    + "POIS TODAS AS LICENÇAS EMITIDAS DEIXARIAM DE FUNCIONAR.",
+                    "Item desativado",
+                    JOptionPane.WARNING_MESSAGE);
+
+            menuGerarChaves.setEnabled(false); // garante que fica desativado
+            return;
+        }
+
+        // Só chega aqui se as chaves ainda não existem
+        try {
+            new java.io.File("chaves").mkdirs();
+            RSAUtil.gerarChaves("chaves");
+
+            JOptionPane.showMessageDialog(null,
+                    "CHAVES GERADAS COM SUCESSO!\n"
+                    + "Pasta: chaves/\n"
+                    + "- chave_privada.key\n"
+                    + "- chave_publica.key\n\n"
+                    + "O menu será desativado por segurança.",
+                    "Sucesso",
+                    JOptionPane.INFORMATION_MESSAGE);
+
+            menuGerarChaves.setEnabled(false); // ← desativa após gerar
+            
+            
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(null,
+                    "ERRO AO TENTAR GERAR AS CHAVES: " + e.getMessage(),
+                    "Erro",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+    }//menuGerarChaves
+
+    // Dentro da sua classe principal (ex: GeradorLicencaUI ou MainFrame)
+// Método auxiliar para abrir qualquer JInternalFrame
+    private void abrirInternalFrame(JInternalFrame novoFrame) {
+        //                                          ↑ novoFrame aqui
+
+        // 1. Verifica se já existe um frame do mesmo tipo aberto
+        for (JInternalFrame frame : this.desktop.getAllFrames()) {
+            //                 ↑ frame aqui — nome diferente, sem conflito
+            if (frame.getClass() == novoFrame.getClass()) {
+                //                   ↑ compara com novoFrame
+                try {
+                    frame.setSelected(true);
+                    frame.setIcon(false);
+                } catch (java.beans.PropertyVetoException e) {
+                    e.printStackTrace();
+                }
+                return;
+            }
+        }
+
+        // 2. Fecha todos os frames abertos antes de abrir o novo
+        for (JInternalFrame frame : this.desktop.getAllFrames()) {
+            frame.dispose(); // ← fecha e libera da memória
+        }
+
+        // 2. Configurações padrão para todos os frames
+        novoFrame.setDefaultCloseOperation(JInternalFrame.DISPOSE_ON_CLOSE);
+        novoFrame.setVisible(true);
+
+        // 3. Adiciona ao desktop
+        this.desktop.add(novoFrame);
+
+        // 4. Traz para frente e centraliza
+        try {
+            novoFrame.setSelected(true);
+            if (novoFrame.getLocation().x == 0 && novoFrame.getLocation().y == 0) {
+                novoFrame.setLocation(
+                        (this.desktop.getWidth() - novoFrame.getWidth()) / 2,
+                        (this.desktop.getHeight() - novoFrame.getHeight()) / 2
+                );
+            }
+        } catch (java.beans.PropertyVetoException e) {
+            e.printStackTrace();
+        }
+    }//abrirInternalFrame
+
+
+    private void gerarChaves() {
+        int resp = JOptionPane.showConfirmDialog(this,
+                "ATENÇÃO: SE JÁ TEM CHAVES GERADAS, ISSO VAI SOBRESCREVÊ-LAS!\n"
+                + "LICENÇAS ANTIGAS DEIXARÃO DE FUNCIONAR.\n\nDESEJA CONTINUAR?",
+                "Gerar novas chaves RSA", JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE);
+        if (resp == JOptionPane.YES_OPTION) {
+            try {
+                new File("chaves").mkdirs();
+                RSAUtil.gerarChaves("chaves");
+                JOptionPane.showMessageDialog(this,
+                        "CHAVES GERADAS COM SUCESSO!\nCOPIE 'chaves_publica.key' PARA O PROJEOT DO CLIENTE.");
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "ERRO AO TENTAR GERAR A CHAVE: " + ex.getMessage());
+            }
+        }
+    }//gerarChaves
 
     /**
      * This method is called from within the constructor to initialize the form.
@@ -52,293 +183,125 @@ public class GeradorLicencaUI extends javax.swing.JFrame {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        panelPrincipal = new javax.swing.JPanel();
-        jLabel4 = new javax.swing.JLabel();
-        jLabel5 = new javax.swing.JLabel();
-        jLabel6 = new javax.swing.JLabel();
-        txtHWID = new javax.swing.JTextField();
-        txtEmail = new javax.swing.JTextField();
-        btnExportarLicenca = new javax.swing.JButton();
-        jScrollPane1 = new javax.swing.JScrollPane();
-        txtLicense = new javax.swing.JTextArea();
-        btnGerarLicenca = new javax.swing.JButton();
-        cmbLicenseType = new javax.swing.JComboBox<>();
-        jLabel7 = new javax.swing.JLabel();
-        lblAvisoHWID = new javax.swing.JLabel();
-        jLabel1 = new javax.swing.JLabel();
-        jLabel2 = new javax.swing.JLabel();
-        btnGerarLicenca1 = new javax.swing.JButton();
+        desktop = new javax.swing.JDesktopPane();
+        jMenuBar1 = new javax.swing.JMenuBar();
+        jMenu1 = new javax.swing.JMenu();
+        jMenuItem4 = new javax.swing.JMenuItem();
+        jMenuItem1 = new javax.swing.JMenuItem();
+        jMenu2 = new javax.swing.JMenu();
+        menuGerarChaves = new javax.swing.JMenuItem();
+        jMenu3 = new javax.swing.JMenu();
+        jMenuItem2 = new javax.swing.JMenuItem();
+        jMenuItem3 = new javax.swing.JMenuItem();
+        jMenu4 = new javax.swing.JMenu();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
-        setTitle("UltraCIPA Key Generator");
+        setTitle("UltraCIPAKeyGen - Gerador de licenças");
+        setBackground(new java.awt.Color(255, 255, 255));
         setResizable(false);
         getContentPane().setLayout(new javax.swing.OverlayLayout(getContentPane()));
 
-        panelPrincipal.setBackground(new java.awt.Color(255, 255, 255));
-        panelPrincipal.setMaximumSize(new java.awt.Dimension(900, 600));
-        panelPrincipal.setMinimumSize(new java.awt.Dimension(900, 600));
-        panelPrincipal.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
+        desktop.setPreferredSize(new java.awt.Dimension(1200, 800));
+        desktop.setLayout(new javax.swing.OverlayLayout(desktop));
+        getContentPane().add(desktop);
 
-        jLabel4.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
-        jLabel4.setText("E-MAIL *");
-        panelPrincipal.add(jLabel4, new org.netbeans.lib.awtextra.AbsoluteConstraints(60, 110, -1, 30));
+        jMenu1.setText("Arquivo");
 
-        jLabel5.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
-        jLabel5.setText("LICENÇA");
-        panelPrincipal.add(jLabel5, new org.netbeans.lib.awtextra.AbsoluteConstraints(60, 360, -1, -1));
-
-        jLabel6.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
-        jLabel6.setText("TIPO *");
-        panelPrincipal.add(jLabel6, new org.netbeans.lib.awtextra.AbsoluteConstraints(60, 280, 70, 30));
-
-        txtHWID.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
-        panelPrincipal.add(txtHWID, new org.netbeans.lib.awtextra.AbsoluteConstraints(140, 190, 630, 35));
-
-        txtEmail.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
-        txtEmail.addKeyListener(new java.awt.event.KeyAdapter() {
-            public void keyPressed(java.awt.event.KeyEvent evt) {
-                txtHWID(evt);
-            }
-        });
-        panelPrincipal.add(txtEmail, new org.netbeans.lib.awtextra.AbsoluteConstraints(140, 110, 480, 35));
-
-        btnExportarLicenca.setFont(new java.awt.Font("Tahoma", 0, 15)); // NOI18N
-        btnExportarLicenca.setText("EXPORTAR LICENÇA");
-        btnExportarLicenca.addActionListener(new java.awt.event.ActionListener() {
+        jMenuItem4.setText("Sair");
+        jMenuItem4.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnExportarLicencaActionPerformed(evt);
+                jMenuItem4ActionPerformed(evt);
             }
         });
-        panelPrincipal.add(btnExportarLicenca, new org.netbeans.lib.awtextra.AbsoluteConstraints(630, 520, 220, 35));
+        jMenu1.add(jMenuItem4);
 
-        txtLicense.setColumns(20);
-        txtLicense.setFont(new java.awt.Font("Arial", 0, 15)); // NOI18N
-        txtLicense.setLineWrap(true);
-        txtLicense.setRows(5);
-        txtLicense.setWrapStyleWord(true);
-        jScrollPane1.setViewportView(txtLicense);
-
-        panelPrincipal.add(jScrollPane1, new org.netbeans.lib.awtextra.AbsoluteConstraints(60, 400, 790, 100));
-
-        btnGerarLicenca.setFont(new java.awt.Font("Tahoma", 0, 15)); // NOI18N
-        btnGerarLicenca.setText("GERAR LICENÇA");
-        btnGerarLicenca.addActionListener(new java.awt.event.ActionListener() {
+        jMenuItem1.setText("Voltar ao Login");
+        jMenuItem1.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnGerarLicencaActionPerformed(evt);
+                jMenuItem1ActionPerformed(evt);
             }
         });
-        panelPrincipal.add(btnGerarLicenca, new org.netbeans.lib.awtextra.AbsoluteConstraints(580, 280, 190, 35));
+        jMenu1.add(jMenuItem1);
 
-        cmbLicenseType.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
-        cmbLicenseType.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "SELECIONE", "TRIAL", "MONTHLY", "ANNUAL", "LIFETIME" }));
-        panelPrincipal.add(cmbLicenseType, new org.netbeans.lib.awtextra.AbsoluteConstraints(140, 280, 150, 35));
+        jMenuBar1.add(jMenu1);
 
-        jLabel7.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
-        jLabel7.setText("HWID");
-        panelPrincipal.add(jLabel7, new org.netbeans.lib.awtextra.AbsoluteConstraints(60, 190, -1, 30));
+        jMenu2.setText("Ferramenta");
 
-        lblAvisoHWID.setText("VERIFICAR SE O HWID ACIMA JÁ ESTÁ REGISTRADO EM NOME ALGUM CLIENTE.");
-        panelPrincipal.add(lblAvisoHWID, new org.netbeans.lib.awtextra.AbsoluteConstraints(140, 230, 630, -1));
-
-        jLabel1.setFont(new java.awt.Font("Tahoma", 1, 18)); // NOI18N
-        jLabel1.setForeground(new java.awt.Color(0, 176, 80));
-        jLabel1.setText("UltraCIPA Key Generator");
-        panelPrincipal.add(jLabel1, new org.netbeans.lib.awtextra.AbsoluteConstraints(130, 30, 280, 30));
-
-        jLabel2.setIcon(new javax.swing.ImageIcon(getClass().getResource("/img/UltraCipaKEY.png"))); // NOI18N
-        panelPrincipal.add(jLabel2, new org.netbeans.lib.awtextra.AbsoluteConstraints(60, 20, -1, -1));
-
-        btnGerarLicenca1.setFont(new java.awt.Font("Tahoma", 0, 15)); // NOI18N
-        btnGerarLicenca1.setText("LIMPAR");
-        btnGerarLicenca1.addActionListener(new java.awt.event.ActionListener() {
+        menuGerarChaves.setText("Gerar chaves RSA");
+        menuGerarChaves.setToolTipText("UMA VEZ QUE AS CHAVES FORAM GERADAS, ESTE ITEM É DESABILITADO POR SEGURANÇA.");
+        menuGerarChaves.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnGerarLicenca1ActionPerformed(evt);
+                menuGerarChavesActionPerformed(evt);
             }
         });
-        panelPrincipal.add(btnGerarLicenca1, new org.netbeans.lib.awtextra.AbsoluteConstraints(330, 280, 190, 35));
+        jMenu2.add(menuGerarChaves);
 
-        getContentPane().add(panelPrincipal);
+        jMenuBar1.add(jMenu2);
 
-        setSize(new java.awt.Dimension(918, 647));
+        jMenu3.setText("Licenças");
+
+        jMenuItem2.setText("Gerar licença");
+        jMenuItem2.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jMenuItem2ActionPerformed(evt);
+            }
+        });
+        jMenu3.add(jMenuItem2);
+
+        jMenuItem3.setText("Consultar licenças");
+        jMenuItem3.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jMenuItem3ActionPerformed(evt);
+            }
+        });
+        jMenu3.add(jMenuItem3);
+
+        jMenuBar1.add(jMenu3);
+
+        jMenu4.setText("Ajuda");
+        jMenuBar1.add(jMenu4);
+
+        setJMenuBar(jMenuBar1);
+
+        setSize(new java.awt.Dimension(1018, 713));
         setLocationRelativeTo(null);
     }// </editor-fold>//GEN-END:initComponents
 
-    private void btnGerarLicencaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnGerarLicencaActionPerformed
-        try {
+    private void jMenuItem2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jMenuItem2ActionPerformed
+        LicencaInternalFrame lif = new LicencaInternalFrame(bancoDados, chavePrivada);
+        abrirInternalFrame(lif);
+    }//GEN-LAST:event_jMenuItem2ActionPerformed
 
-            String email = txtEmail.getText();
-            String hwid = txtHWID.getText();
-            int tipo = cmbLicenseType.getSelectedIndex();
+    private void jMenuItem3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jMenuItem3ActionPerformed
+        ListarInternalFrame list = new ListarInternalFrame();
+        abrirInternalFrame(list);
+    }//GEN-LAST:event_jMenuItem3ActionPerformed
 
-            if (email.isEmpty()) {
-                JOptionPane.showMessageDialog(null, "DIGITE O E-MAIL.");
-                txtEmail.requestFocus();
-                return;
-            }
+    private void jMenuItem4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jMenuItem4ActionPerformed
+        System.exit(0);
+    }//GEN-LAST:event_jMenuItem4ActionPerformed
 
-            if (hwid.isEmpty()) {
-                JOptionPane.showMessageDialog(null, "DIGITE O HWID.");
-                txtHWID.requestFocus();
-                return;
-            }
+    private void menuGerarChavesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_menuGerarChavesActionPerformed
+       menuGerarChaves();
+    }//GEN-LAST:event_menuGerarChavesActionPerformed
 
-            if (tipo == 0) {
-                JOptionPane.showMessageDialog(null, "SELECIONE O TIPO DE LICENÇA.");
-                cmbLicenseType.requestFocus();
-                return;
-            }
+    private void jMenuItem1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jMenuItem1ActionPerformed
+        this.setVisible(false);
+        login.setVisible(true);
+    }//GEN-LAST:event_jMenuItem1ActionPerformed
 
-            // 🧾 tipo de licença (pode vir de ComboBox depois)
-            String type = cmbLicenseType.getSelectedItem().toString();
-
-            // ⏳ cálculo da expiração
-            String expires;
-
-            switch (type) {
-                case "TRIAL":
-                    expires = LicenseDateUtil.addDays(7);
-                    break;
-                case "MONTHLY":
-                    expires = LicenseDateUtil.addMonths(1);
-                    break;
-                case "ANNUAL":
-                    expires = LicenseDateUtil.addYears(1);
-                    break;
-                case "LIFETIME":
-                    expires = "2099-12-31";
-                    break;
-                default:
-                    expires = LicenseDateUtil.addYears(1);
-            }
-
-            // 📦 payload completo
-            String payload = "{"
-                    + "\"email\":\"" + email + "\","
-                    + "\"hwid\":\"" + hwid + "\","
-                    + "\"type\":\"" + type + "\","
-                    + "\"expires\":\"" + expires + "\""
-                    + "}";
-
-            // 🔐 RSA
-            PrivateKey privateKey = KeyLoader.loadPrivateKey();
-            String license = LicenseService.generate(payload, privateKey);
-
-            // 📺 UI
-            txtLicense.setText(license);
-
-            // 💾 banco
-            LicenseDAO.save(email, hwid, license, type, expires);
-
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(null, "ERRO AO TENTAR GERAR A LICENÇA: " + e);
-        }
-    }//GEN-LAST:event_btnGerarLicencaActionPerformed
-
-    private void btnExportarLicencaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnExportarLicencaActionPerformed
-        try {
-            String license = txtLicense.getText().trim();
-
-            if (license.isEmpty()) {
-                JOptionPane.showMessageDialog(null, "O CAMPO LICENÇA ESTÁ VAZIO.\nGERE  UMA LICENÇA PRIMEIRO.");
-                return;
-            }
-
-            JFileChooser chooser = new JFileChooser();
-
-            chooser.setSelectedFile(new File("licenseUltraCIPA.dat"));
-
-            if (chooser.showSaveDialog(this)
-                    == JFileChooser.APPROVE_OPTION) {
-
-                File file = chooser.getSelectedFile();
-
-                LicenseExporter.export(file, license);
-
-                JOptionPane.showMessageDialog(null, "LICENÇA EXPORTADA COM SUCESSO.");
-            }
-        } catch (HeadlessException | IOException e) {
-            JOptionPane.showMessageDialog(null, "ERRO AO TENTAR EXPORTA A LICENÇA: " + e);
-        } catch (Exception ex) {
-            Logger.getLogger(GeradorLicencaUI.class.getName()).log(Level.SEVERE, null, ex);
-        }
-    }//GEN-LAST:event_btnExportarLicencaActionPerformed
-
-    private void txtHWID(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_txtHWID
-        if (evt.getKeyCode() == java.awt.event.KeyEvent.VK_ENTER) {
-            cmbLicenseType.requestFocusInWindow();
-        }
-    }//GEN-LAST:event_txtHWID
-
-    private void btnGerarLicenca1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnGerarLicenca1ActionPerformed
-        //apenas para testes
-        PublicKey pk = null;
-        try {
-            pk = PublicKeyLoader.load();
-        } catch (Exception ex) {
-            Logger.getLogger(GeradorLicencaUI.class.getName()).log(Level.SEVERE, null, ex);
-        }
-
-boolean valid = LicenseValidator.verify(txtLicense.getText(), pk);
-
-if (valid) {
-    JOptionPane.showMessageDialog(null, "LICENÇA VÁLIDA.");
-} else {
-    JOptionPane.showMessageDialog(null, "LICENÇA INVÁLIDA.");
-}
-    }//GEN-LAST:event_btnGerarLicenca1ActionPerformed
-
-    /**
-     * @param args the command line arguments
-     */
-    public static void main(String args[]) {
-        /* Set the Nimbus look and feel */
-        //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
-        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
-         */
-        try {
-            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
-                if ("Nimbus".equals(info.getName())) {
-                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
-                    break;
-                }
-            }
-        } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(GeradorLicencaUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(GeradorLicencaUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(GeradorLicencaUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
-            java.util.logging.Logger.getLogger(GeradorLicencaUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        }
-        //</editor-fold>
-
-        
-        /* Create and display the form */
-        java.awt.EventQueue.invokeLater(new Runnable() {
-            public void run() {
-                new GeradorLicencaUI().setVisible(true);
-            }
-        });
-    }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton btnExportarLicenca;
-    private javax.swing.JButton btnGerarLicenca;
-    private javax.swing.JButton btnGerarLicenca1;
-    public javax.swing.JComboBox<String> cmbLicenseType;
-    private javax.swing.JLabel jLabel1;
-    private javax.swing.JLabel jLabel2;
-    private javax.swing.JLabel jLabel4;
-    private javax.swing.JLabel jLabel5;
-    private javax.swing.JLabel jLabel6;
-    private javax.swing.JLabel jLabel7;
-    private javax.swing.JScrollPane jScrollPane1;
-    private javax.swing.JLabel lblAvisoHWID;
-    private javax.swing.JPanel panelPrincipal;
-    public javax.swing.JTextField txtEmail;
-    private javax.swing.JTextField txtHWID;
-    private javax.swing.JTextArea txtLicense;
+    private javax.swing.JDesktopPane desktop;
+    private javax.swing.JMenu jMenu1;
+    private javax.swing.JMenu jMenu2;
+    private javax.swing.JMenu jMenu3;
+    private javax.swing.JMenu jMenu4;
+    private javax.swing.JMenuBar jMenuBar1;
+    private javax.swing.JMenuItem jMenuItem1;
+    private javax.swing.JMenuItem jMenuItem2;
+    private javax.swing.JMenuItem jMenuItem3;
+    private javax.swing.JMenuItem jMenuItem4;
+    private javax.swing.JMenuItem menuGerarChaves;
     // End of variables declaration//GEN-END:variables
 }

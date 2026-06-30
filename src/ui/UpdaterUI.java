@@ -23,7 +23,7 @@ import javax.swing.SwingWorker;
  *
  * @author Maxwell
  */
-public class Updater extends javax.swing.JFrame {
+public class UpdaterUI extends javax.swing.JFrame {
 
     // =============================================
     // CONFIGURAÇÕES - ALTERE AQUI
@@ -47,7 +47,7 @@ public class Updater extends javax.swing.JFrame {
     /**
      * Creates new form VerificarAtualizacoes
      */
-    public Updater() {
+    public UpdaterUI() {
         initComponents();
         lblVersao.setText(VERSAO_ATUAL);
         lblStatus.setVisible(false);
@@ -354,10 +354,7 @@ public class Updater extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-        this.dispose();
-        GeradorLicencaUI glu = new GeradorLicencaUI();
-        glu.setVisible(true);
-        glu.txtEmail.requestFocus();
+       
     }//GEN-LAST:event_jButton1ActionPerformed
 
     private void btnVerificarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnVerificarActionPerformed
@@ -402,21 +399,23 @@ public class Updater extends javax.swing.JFrame {
                 }
             }
         } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(Updater.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(UpdaterUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(Updater.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(UpdaterUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(Updater.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(UpdaterUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         } catch (javax.swing.UnsupportedLookAndFeelException ex) {
-            java.util.logging.Logger.getLogger(Updater.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(UpdaterUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
+        //</editor-fold>
+        //</editor-fold>
         //</editor-fold>
         //</editor-fold>
 
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
-                new Updater().setVisible(true);
+                new UpdaterUI().setVisible(true);
             }
         });
     }

@@ -5,8 +5,9 @@
  */
 package main;
 
+import banco.BancoDados;
+import banco.BancoUsuarios;
 import com.formdev.flatlaf.FlatLightLaf;
-import db.DatabaseInitializer;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -16,10 +17,10 @@ import java.net.URL;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
-import ui.Login;
-import ui.Updater;
-import static ui.Updater.URL_VERSAO;
-import static ui.Updater.VERSAO_ATUAL;
+import ui.LoginUI;
+import ui.UpdaterUI;
+import static ui.UpdaterUI.URL_VERSAO;
+import static ui.UpdaterUI.VERSAO_ATUAL;
 
 /**
  *
@@ -27,26 +28,32 @@ import static ui.Updater.VERSAO_ATUAL;
  */
 public class StartApp {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
+        
+        
 
         FlatLightLaf.setup();
         UIManager.put("Button.arc", 999);
-        UIManager.put( "ProgressBar.arc", 999);
-        UIManager.put( "Component.arrowType", "chevron");
-        UIManager.put( "Component.focusWidth", 1);
-        UIManager.put( "TextComponent.arc", 999);
-        
-        Login login = new Login();
-        login.setVisible(true);     
-        
+        UIManager.put("ProgressBar.arc", 999);
+        UIManager.put("Component.arrowType", "chevron");
+        UIManager.put("Component.focusWidth", 1);
+        UIManager.put("TextComponent.arc", 999);
+
+//        LoginUI login = new LoginUI(); Habilitar depois
+//        login.setVisible(true);
         verificarNaInicializacao();
 //         Opção 1: Abrir a janela de atualização
 //        SwingUtilities.invokeLater(() -> {
 //            new Updater().setVisible(true);
 //        });
 
-        DatabaseInitializer.initialize();
-
+        BancoUsuarios bancoUsuarios = new BancoUsuarios();
+        BancoDados bancoDados = new BancoDados();
+        
+        LoginUI login = new LoginUI(bancoUsuarios, bancoDados);
+        login.setVisible(true);
+//        GeradorLicencaUI gl = new GeradorLicencaUI();
+//        gl.setVisible(true);
     }//main  
 
     /**
@@ -92,7 +99,7 @@ public class StartApp {
                         });
 
                         if (result[0]) {
-                            SwingUtilities.invokeLater(() -> new Updater().setVisible(true));
+                            SwingUtilities.invokeLater(() -> new UpdaterUI().setVisible(true));
                         }
                     }
                 }
@@ -101,7 +108,6 @@ public class StartApp {
                 System.out.println("Verificação de atualização falhou: " + e.getMessage());
             }
         }).start();
-    }//VerificarNaInicializacao
-    
+    }//VerificarNaInicializacao - inserido construtor
 
-}//StartApp
+}//StartApp - fim de classe

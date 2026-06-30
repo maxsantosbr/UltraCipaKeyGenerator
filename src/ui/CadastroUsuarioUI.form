@@ -173,19 +173,19 @@
             </Constraint>
           </Constraints>
         </Component>
-        <Component class="javax.swing.JButton" name="btnExcluirUsuario">
+        <Component class="javax.swing.JButton" name="btnDesativarUsuario">
           <Properties>
             <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
-              <Image iconType="3" name="/img/icons8-lixeira-21.png"/>
+              <Image iconType="3" name="/img/icons8-desconectar-usuario-27.png"/>
             </Property>
-            <Property name="text" type="java.lang.String" value="EXCLUIR"/>
+            <Property name="text" type="java.lang.String" value="DESATIVAR"/>
           </Properties>
           <Events>
-            <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btnExcluirUsuarioActionPerformed"/>
+            <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btnDesativarUsuarioActionPerformed"/>
           </Events>
           <Constraints>
             <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout" value="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout$AbsoluteConstraintsDescription">
-              <AbsoluteConstraints x="650" y="520" width="140" height="40"/>
+              <AbsoluteConstraints x="750" y="520" width="170" height="40"/>
             </Constraint>
           </Constraints>
         </Component>
@@ -201,11 +201,11 @@
           </Events>
           <Constraints>
             <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout" value="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout$AbsoluteConstraintsDescription">
-              <AbsoluteConstraints x="460" y="520" width="140" height="40"/>
+              <AbsoluteConstraints x="520" y="520" width="170" height="40"/>
             </Constraint>
           </Constraints>
         </Component>
-        <Component class="javax.swing.JButton" name="btnNovoUsuario">
+        <Component class="javax.swing.JButton" name="btnAtualizarUsuario">
           <Properties>
             <Property name="icon" type="javax.swing.Icon" editor="org.netbeans.modules.form.editors2.IconEditor">
               <Image iconType="3" name="/img/icons8-atualizar-21.png"/>
@@ -213,11 +213,11 @@
             <Property name="text" type="java.lang.String" value="ATUALIZAR"/>
           </Properties>
           <Events>
-            <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btnNovoUsuarioActionPerformed"/>
+            <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btnAtualizarUsuarioActionPerformed"/>
           </Events>
           <Constraints>
             <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout" value="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout$AbsoluteConstraintsDescription">
-              <AbsoluteConstraints x="270" y="520" width="140" height="40"/>
+              <AbsoluteConstraints x="300" y="520" width="170" height="40"/>
             </Constraint>
           </Constraints>
         </Component>
@@ -306,7 +306,7 @@
           </Events>
           <Constraints>
             <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout" value="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout$AbsoluteConstraintsDescription">
-              <AbsoluteConstraints x="80" y="520" width="140" height="40"/>
+              <AbsoluteConstraints x="80" y="520" width="170" height="40"/>
             </Constraint>
           </Constraints>
         </Component>

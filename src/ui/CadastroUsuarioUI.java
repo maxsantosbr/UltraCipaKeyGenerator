@@ -5,182 +5,133 @@
  */
 package ui;
 
-import dao.LoginDAO;
-import java.awt.event.ActionEvent;
+import banco.BancoUsuarios;
 import java.awt.event.KeyEvent;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import javax.swing.ImageIcon;
 import javax.swing.JOptionPane;
-import javax.swing.table.DefaultTableModel;
-import model.Usuario;
-import util.SessaoUsuario;
+import net.proteanit.sql.DbUtils;
 
 /**
  *
  * @author Maxwell
  */
-public class CadastroUsuario extends javax.swing.JFrame {
+public class CadastroUsuarioUI extends javax.swing.JFrame {
 
-    private LoginDAO dao = new LoginDAO();
     private int idSelecionado = -1;
+    private int idSelected;
 
+    public LoginUI login;
+
+    private BancoUsuarios bancoUsuarios;
+
+//    private static final String URL = "jdbc:sqlite:usuarios.db";
+//    private Connection conn;
     /**
      * Creates new form CadastroUsuario
+     *
+     * @param login
+     * @param bancoUsuarios
      */
-    public CadastroUsuario() {
+    public CadastroUsuarioUI(LoginUI login, BancoUsuarios bancoUsuarios) {
         initComponents();
-        configurarTabela();
-        carregarTabela();
+        this.login = login;
+        this.bancoUsuarios = bancoUsuarios;
         //Imagem do software
-        ImageIcon iconUCKG = new ImageIcon(this.getClass().getClassLoader().getResource("img/UltraCipaKEY.png"));
+        ImageIcon iconUCKG = new ImageIcon(this.getClass().getClassLoader().getResource("img/ultracipa_27x27.png"));
         this.setIconImage(iconUCKG.getImage());
-        // Somente admin pode cadastrar usuários
-        if (!SessaoUsuario.isAdmin()) {
-            JOptionPane.showMessageDialog(this, "ACESSO NEGADO!");
-            this.dispose();
-        }
+        lerTabela();
 
     }//Construtor
 
-    
-    private boolean validarCamposSalvarOuAtualizar() {
+    private void atualizarUsuario() {
+        int linhaSelecionada = tblUsuarios.getSelectedRow();
+        if (linhaSelecionada == -1) {
+            JOptionPane.showMessageDialog(this, "SELECIONE UM USUÁRIO NA TABELA PARA ATUALIZAR SEUS DADOS!");
+            return;
+        }
         char[] senha = txtSenhaCadastro.getPassword();
         String campoSenha = new String(senha);
         char[] repetirSenha = txtRepetirSenhaCadastro.getPassword();
         String campoRepetirSenha = new String(repetirSenha);
-        int combo = comboPerfil.getSelectedIndex();
+        String combo = comboPerfil.getSelectedItem().toString();
+        String nome = txtNomeCadastro.getText().trim();
+        String email = txtEmailCadastro.getText().trim().toLowerCase();
+        int status = checkAtivo.isSelected() ? 1 : 0;
+        int id = Integer.parseInt(tblUsuarios.getValueAt(linhaSelecionada, 0).toString());
 
-        if (txtNomeCadastro.getText().isEmpty() || txtEmailCadastro.getText().isEmpty()
-                || campoSenha.isEmpty() || campoRepetirSenha.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "PREENCHA TODOS OS CAMPOS!");
-            return false;
+        if (!campoSenha.isEmpty() && campoRepetirSenha.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "PREENCHA O CAMPO REPETIR SENHA!");
+            txtRepetirSenhaCadastro.requestFocus();
+            return;
         }
+
+        if (!campoRepetirSenha.isEmpty() && campoSenha.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "PREENCHA O CAMPO SENHA!");
+            txtSenhaCadastro.requestFocus();
+            return;
+        }
+
         if (!campoSenha.equals(campoRepetirSenha)) {
             JOptionPane.showMessageDialog(this, "OS CAMPOS SENHA E REPETIR SENHA NÃO SÃO IGUAIS!");
             txtSenhaCadastro.requestFocus();
-            return false;
-        }
-        if (combo == 0) {
-            JOptionPane.showMessageDialog(this, "SELECIONE O PERFIL DO USUÁRIO!");
-            comboPerfil.requestFocus();
-            return false;
-        }
-        return true;
-    }//validarCamposSalvarOuAtualizar
 
-    private void salvarUsuario() {
-        if (!validarCamposSalvarOuAtualizar()) {
-            return;
-        }
-
-        Usuario u = new Usuario();
-        u.setNomeCompleto(txtNomeCadastro.getText().trim());
-        u.setEmail(txtEmailCadastro.getText().trim());
-        u.setSenha(new String(txtSenhaCadastro.getPassword()));
-        u.setPerfil(comboPerfil.getSelectedItem().toString());
-        u.setAtivo(checkAtivo.isSelected() ? 1 : 0);
-
-        if (dao.inserir(u)) {
-            JOptionPane.showMessageDialog(this, "USUÁRIO CADASTRADO COM SUCESSO!");
+        } else {
+            bancoUsuarios.atualizarUsuario(id, nome, email, campoSenha, combo, status);
             limparCampos();
-            carregarTabela();
-        }
-    }//btnSalvar
-
-    private void atualizarUsuario() {
-        if (!validarCamposSalvarOuAtualizar()) {
-            return;
-        }
-
-        if (idSelecionado == -1) {
-            JOptionPane.showMessageDialog(this, "SELECIONE UM USUÁRIO NA TABELA PARA ATUALIZAR!");
-            return;
-        }
-
-        Usuario u = new Usuario();
-        u.setId(idSelecionado);
-        u.setNomeCompleto(txtNomeCadastro.getText().trim());
-        u.setEmail(txtEmailCadastro.getText().trim());
-        u.setSenha(new String(txtSenhaCadastro.getPassword()));
-        u.setPerfil(comboPerfil.getSelectedItem().toString());
-        u.setAtivo(checkAtivo.isSelected() ? 1 : 0);
-
-        if (dao.atualizar(u)) {
-            JOptionPane.showMessageDialog(this, "USUÁRIO ATUALIZADO COM SUCESSO!");
-            limparCampos();
-            carregarTabela();
+            lerTabela();
         }
     }//atualizarUsuario
 
-    private void configurarTabela() {
-        DefaultTableModel model = new DefaultTableModel(
-                new String[]{"ID", "Nome", "E-mail", "Perfil", "Status"}, 0
-        ) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false; // impede edição direta na tabela
-            }
-        };
-        tblUsuarios.setModel(model);
+    private void salvarUsuario() {
+        char[] senha = txtSenhaCadastro.getPassword();
+        String campoSenha = new String(senha);
+        char[] repetirSenha = txtRepetirSenhaCadastro.getPassword();
+        String campoRepetirSenha = new String(repetirSenha);
+        String combo = comboPerfil.getSelectedItem().toString();
+        String nome = txtNomeCadastro.getText().trim();
+        String email = txtEmailCadastro.getText().trim();
+        int status = checkAtivo.isSelected() ? 1 : 0;
 
-        // Oculta a coluna ID (mantém o valor mas não mostra)
-        tblUsuarios.getColumnModel().getColumn(0).setMinWidth(0);
-        tblUsuarios.getColumnModel().getColumn(0).setMaxWidth(0);
-        tblUsuarios.getColumnModel().getColumn(0).setWidth(0);
-    }
-
-    // ===== CARREGAR TABELA =====
-    private void carregarTabela() {
-        DefaultTableModel model = (DefaultTableModel) tblUsuarios.getModel();
-        model.setRowCount(0); // limpa a tabela
-        dao.listarTodos().forEach((u) -> {
-            model.addRow(new Object[]{
-                u.getId(),
-                u.getNomeCompleto(),
-                u.getEmail(),
-                u.getPerfil(),
-                u.getAtivo() == 1 ? "Ativo" : "Bloqueado"
-            });
-        });
-    }
-
-    // ===== CLIQUE NA TABELA (carregar para edição) =====
-    private void tblUsuariosMouseClicked() {
-        btnSalvarUsuario.setEnabled(false);
-        int linha = tblUsuarios.getSelectedRow();
-        if (linha >= 0) {
-            idSelecionado = (int) tblUsuarios.getValueAt(linha, 0);
-            Usuario u = dao.buscarPorId(idSelecionado);
-            if (u != null) {
-                txtNomeCadastro.setText(u.getNomeCompleto());
-                txtEmailCadastro.setText(u.getEmail());
-                txtSenhaCadastro.setText(""); // não carrega a senha por segurança
-                comboPerfil.setSelectedItem(u.getPerfil());
-                checkAtivo.setSelected(u.getAtivo() == 1);
-            }
-        }
-    }
-
-    // ===== EXCLUIR =====
-    private void excluirUsuario() {
-        if (idSelecionado == -1) {
-            JOptionPane.showMessageDialog(this, "SELECIONE UM USUÁRIO NA TABELA (SE HOUVER)!");
+        if (txtNomeCadastro.getText().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "PREENCHA O CAMPO NOME!");
+            txtNomeCadastro.requestFocus();
             return;
         }
-        int op = JOptionPane.showConfirmDialog(this,
-                "DESEJA EXCLUIR ESTE USUÁRIO?", "EXCLUIR", JOptionPane.YES_NO_OPTION);
-        if (op == JOptionPane.YES_OPTION) {
-            if (dao.deletar(idSelecionado)) {
-                JOptionPane.showMessageDialog(this, "USUÁRIO EXCLUÍDO!");
-                limparCampos();
-                carregarTabela();
-            }
-        }
-    }
 
-    // ===== NOVO =====
-    private void btnNovoActionPerformed(ActionEvent evt) {
-        limparCampos();
-    }
+        if (txtEmailCadastro.getText().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "PREENCHA O CAMPO E-MAIL!");
+            txtEmailCadastro.requestFocus();
+            return;
+        }
+
+        if (campoSenha.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "PREENCHA O CAMPO SENHA!");
+            txtSenhaCadastro.requestFocus();
+            return;
+        }
+
+        if (campoRepetirSenha.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "PREENCHA O CAMPO REPETIR SENHA!");
+            txtRepetirSenhaCadastro.requestFocus();
+            return;
+        }
+
+        if (!campoSenha.equals(campoRepetirSenha)) {
+            JOptionPane.showMessageDialog(this, "OS CAMPOS SENHA E REPETIR SENHA NÃO SÃO IGUAIS!");
+            txtSenhaCadastro.requestFocus();
+            return;
+        }
+
+        if (combo.equalsIgnoreCase("Selecione")) {
+            JOptionPane.showMessageDialog(this, "SELECIONE O PERFIL DO USUÁRIO!");
+            comboPerfil.requestFocus();
+        } else {
+            bancoUsuarios.inserirUsuario(nome, email, campoSenha, combo, status);
+            lerTabela();
+        }
+    }//salvarUsuario
 
     private void limparCampos() {
         idSelecionado = -1;
@@ -192,7 +143,38 @@ public class CadastroUsuario extends javax.swing.JFrame {
         checkAtivo.setSelected(false);
         tblUsuarios.clearSelection();
         btnSalvarUsuario.setEnabled(true);
-    }
+        btnDesativarUsuario.setEnabled(true);
+    }//limparCampos
+
+    private void lerTabela() {
+        try {
+            ResultSet rs = bancoUsuarios.listarUsuarios();
+            tblUsuarios.setModel(DbUtils.resultSetToTableModel(rs));
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this,
+                    "ERRO AO LER TABELA: " + e.getMessage());
+        }
+    }//lerTabela
+
+    private void setarTabela() {
+        int setar = tblUsuarios.getSelectedRow();
+
+        if (setar >= 0) {
+            txtNomeCadastro.setText(tblUsuarios.getModel().getValueAt(setar, 1).toString());
+            txtEmailCadastro.setText(tblUsuarios.getModel().getValueAt(setar, 2).toString());
+            comboPerfil.setSelectedItem(tblUsuarios.getModel().getValueAt(setar, 3).toString());
+            Object status = tblUsuarios.getValueAt(setar, 4);
+            boolean ativo = status.toString().equals("1");
+            checkAtivo.setSelected(ativo);
+        }//if
+        btnSalvarUsuario.setEnabled(false);
+
+        if (txtEmailCadastro.getText().equals("mwllsantos@gmail.com")) {
+            btnDesativarUsuario.setEnabled(false);
+        } else {
+            btnDesativarUsuario.setEnabled(true);
+        }
+    }//setarTabela
 
     /**
      * This method is called from within the constructor to initialize the form.
@@ -213,9 +195,9 @@ public class CadastroUsuario extends javax.swing.JFrame {
         comboPerfil = new javax.swing.JComboBox<>();
         jLabel4 = new javax.swing.JLabel();
         checkAtivo = new javax.swing.JCheckBox();
-        btnExcluirUsuario = new javax.swing.JButton();
+        btnDesativarUsuario = new javax.swing.JButton();
         btnLimparCamposCadastroUsuarios = new javax.swing.JButton();
-        btnNovoUsuario = new javax.swing.JButton();
+        btnAtualizarUsuario = new javax.swing.JButton();
         jScrollPane1 = new javax.swing.JScrollPane();
         tblUsuarios = new javax.swing.JTable();
         jLabel5 = new javax.swing.JLabel();
@@ -283,14 +265,14 @@ public class CadastroUsuario extends javax.swing.JFrame {
         checkAtivo.setText("ATIVO");
         panelPrincipal.add(checkAtivo, new org.netbeans.lib.awtextra.AbsoluteConstraints(350, 450, -1, -1));
 
-        btnExcluirUsuario.setIcon(new javax.swing.ImageIcon(getClass().getResource("/img/icons8-lixeira-21.png"))); // NOI18N
-        btnExcluirUsuario.setText("EXCLUIR");
-        btnExcluirUsuario.addActionListener(new java.awt.event.ActionListener() {
+        btnDesativarUsuario.setIcon(new javax.swing.ImageIcon(getClass().getResource("/img/icons8-desconectar-usuario-27.png"))); // NOI18N
+        btnDesativarUsuario.setText("DESATIVAR");
+        btnDesativarUsuario.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnExcluirUsuarioActionPerformed(evt);
+                btnDesativarUsuarioActionPerformed(evt);
             }
         });
-        panelPrincipal.add(btnExcluirUsuario, new org.netbeans.lib.awtextra.AbsoluteConstraints(650, 520, 140, 40));
+        panelPrincipal.add(btnDesativarUsuario, new org.netbeans.lib.awtextra.AbsoluteConstraints(750, 520, 170, 40));
 
         btnLimparCamposCadastroUsuarios.setIcon(new javax.swing.ImageIcon(getClass().getResource("/img/icons8-limpar-aqruivo-21.png"))); // NOI18N
         btnLimparCamposCadastroUsuarios.setText("LIMPAR");
@@ -299,16 +281,16 @@ public class CadastroUsuario extends javax.swing.JFrame {
                 btnLimparCamposCadastroUsuariosActionPerformed(evt);
             }
         });
-        panelPrincipal.add(btnLimparCamposCadastroUsuarios, new org.netbeans.lib.awtextra.AbsoluteConstraints(460, 520, 140, 40));
+        panelPrincipal.add(btnLimparCamposCadastroUsuarios, new org.netbeans.lib.awtextra.AbsoluteConstraints(520, 520, 170, 40));
 
-        btnNovoUsuario.setIcon(new javax.swing.ImageIcon(getClass().getResource("/img/icons8-atualizar-21.png"))); // NOI18N
-        btnNovoUsuario.setText("ATUALIZAR");
-        btnNovoUsuario.addActionListener(new java.awt.event.ActionListener() {
+        btnAtualizarUsuario.setIcon(new javax.swing.ImageIcon(getClass().getResource("/img/icons8-atualizar-21.png"))); // NOI18N
+        btnAtualizarUsuario.setText("ATUALIZAR");
+        btnAtualizarUsuario.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnNovoUsuarioActionPerformed(evt);
+                btnAtualizarUsuarioActionPerformed(evt);
             }
         });
-        panelPrincipal.add(btnNovoUsuario, new org.netbeans.lib.awtextra.AbsoluteConstraints(270, 520, 140, 40));
+        panelPrincipal.add(btnAtualizarUsuario, new org.netbeans.lib.awtextra.AbsoluteConstraints(300, 520, 170, 40));
 
         tblUsuarios.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
@@ -357,7 +339,7 @@ public class CadastroUsuario extends javax.swing.JFrame {
                 btnSalvarUsuarioActionPerformed(evt);
             }
         });
-        panelPrincipal.add(btnSalvarUsuario, new org.netbeans.lib.awtextra.AbsoluteConstraints(80, 520, 140, 40));
+        panelPrincipal.add(btnSalvarUsuario, new org.netbeans.lib.awtextra.AbsoluteConstraints(80, 520, 170, 40));
 
         jLabel7.setFont(new java.awt.Font("Tahoma", 0, 18)); // NOI18N
         jLabel7.setText("Perfil");
@@ -369,24 +351,27 @@ public class CadastroUsuario extends javax.swing.JFrame {
         setLocationRelativeTo(null);
     }// </editor-fold>//GEN-END:initComponents
 
-    private void btnExcluirUsuarioActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnExcluirUsuarioActionPerformed
-        excluirUsuario();
-    }//GEN-LAST:event_btnExcluirUsuarioActionPerformed
+    private void btnDesativarUsuarioActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnDesativarUsuarioActionPerformed
+        String email = txtEmailCadastro.getText().trim();
+        bancoUsuarios.desativarUsuario(email);
+        limparCampos();
+        lerTabela();
+    }//GEN-LAST:event_btnDesativarUsuarioActionPerformed
 
     private void btnLimparCamposCadastroUsuariosActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnLimparCamposCadastroUsuariosActionPerformed
         limparCampos();
     }//GEN-LAST:event_btnLimparCamposCadastroUsuariosActionPerformed
 
-    private void btnNovoUsuarioActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnNovoUsuarioActionPerformed
+    private void btnAtualizarUsuarioActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnAtualizarUsuarioActionPerformed
         atualizarUsuario();
-    }//GEN-LAST:event_btnNovoUsuarioActionPerformed
+    }//GEN-LAST:event_btnAtualizarUsuarioActionPerformed
 
     private void btnSalvarUsuarioActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnSalvarUsuarioActionPerformed
         salvarUsuario();
     }//GEN-LAST:event_btnSalvarUsuarioActionPerformed
 
     private void tblUsuariosMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_tblUsuariosMouseClicked
-        tblUsuariosMouseClicked();
+        setarTabela();
     }//GEN-LAST:event_tblUsuariosMouseClicked
 
     private void txtNomeCadastroKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_txtNomeCadastroKeyPressed
@@ -417,45 +402,11 @@ public class CadastroUsuario extends javax.swing.JFrame {
         // TODO add your handling code here:
     }//GEN-LAST:event_txtEmailCadastroKeyReleased
 
-    /**
-     * @param args the command line arguments
-     */
-    public static void main(String args[]) {
-        /* Set the Nimbus look and feel */
-        //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
-        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
-         */
-        try {
-            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
-                if ("Nimbus".equals(info.getName())) {
-                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
-                    break;
-                }
-            }
-        } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(CadastroUsuario.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(CadastroUsuario.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(CadastroUsuario.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
-            java.util.logging.Logger.getLogger(CadastroUsuario.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        }
-        //</editor-fold>
-
-        /* Create and display the form */
-        java.awt.EventQueue.invokeLater(new Runnable() {
-            public void run() {
-                new CadastroUsuario().setVisible(true);
-            }
-        });
-    }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton btnExcluirUsuario;
+    private javax.swing.JButton btnAtualizarUsuario;
+    private javax.swing.JButton btnDesativarUsuario;
     private javax.swing.JButton btnLimparCamposCadastroUsuarios;
-    private javax.swing.JButton btnNovoUsuario;
     private javax.swing.JButton btnSalvarUsuario;
     private javax.swing.JCheckBox checkAtivo;
     private javax.swing.JComboBox<String> comboPerfil;

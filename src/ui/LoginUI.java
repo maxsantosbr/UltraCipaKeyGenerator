@@ -5,25 +5,33 @@
  */
 package ui;
 
-import dao.LoginDAO;
+import banco.BancoDados;
+import banco.BancoUsuarios;
 import java.awt.event.KeyEvent;
 import java.util.Arrays;
 import javax.swing.ImageIcon;
 import javax.swing.JOptionPane;
-import model.Usuario;
-import util.SessaoUsuario;
 
 /**
  *
  * @author Maxwell
  */
-public class Login extends javax.swing.JFrame {
+public class LoginUI extends javax.swing.JFrame {
 
+    private BancoUsuarios bancoUsuarios;
+    private BancoDados bancoDados;
+    
+//    GeradorLicencaUI principal = new GeradorLicencaUI(banco,login);
     /**
      * Creates new form Login
+     *
+     * @param bancoUsuarios
+     * @param bancoDados
      */
-    public Login() {
+    public LoginUI(BancoUsuarios bancoUsuarios,BancoDados bancoDados) {
         initComponents();
+        this.bancoUsuarios = bancoUsuarios;
+        this.bancoDados = bancoDados;
         //Imagem do software
         ImageIcon iconUCKG = new ImageIcon(this.getClass().getClassLoader().getResource("img/UltraCipaKEY.png"));
         this.setIconImage(iconUCKG.getImage());
@@ -31,15 +39,9 @@ public class Login extends javax.swing.JFrame {
     }//construtor
 
     private void logar() {
-        String email = txtEmail.getText().trim();
+        String email = txtEmail.getText().trim().toLowerCase();
         char[] senha = txtSenha.getPassword();
         String password = new String(senha);
-
-        if (email.isEmpty() && password.isEmpty()) {
-            JOptionPane.showMessageDialog(null, "TODOS OS CAMPOS DEVEM SER PREENCHIDOS.");
-            txtEmail.requestFocus();
-            return;
-        }
 
         if (email.isEmpty()) {
             JOptionPane.showMessageDialog(null, "PREENCHA O CAMPO E-MAIL.");
@@ -54,30 +56,20 @@ public class Login extends javax.swing.JFrame {
         }
 
         if (!email.isEmpty() && !password.isEmpty()) {
-            LoginDAO dao = new LoginDAO();
 
-            //temp
-            System.out.println("Email: " + email);
-            System.out.println("Senha: " + password);
-
-            Usuario u = dao.validarLogin(email, password);
-            System.out.println("Usuario retornado: " + u);
-            if (u != null) {
-                System.out.println("Entrou no IF");
-
-                SessaoUsuario.iniciar(u);   
-                JOptionPane.showMessageDialog(null,
-            "Login realizado com sucesso");
-
-                new Updater().setVisible(true);
-                this.dispose();                 // fecha a tela de login
-                
+            if (bancoUsuarios.buscarUsuarioPorEmail(email, password)) {
+                GeradorLicencaUI principal = new GeradorLicencaUI(bancoUsuarios, bancoDados, this);
+                principal.setVisible(true);
+                txtEmail.setText("");
+                txtSenha.setText("");
+                this.setVisible(false);
             } else {
-                 System.out.println("Entrou no ELSE");
-                JOptionPane.showMessageDialog(this, "E-MAIL OU SENHAS INVÁLIDOS!", "ERRO", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(null, "USUÁRIO OU SENHA INVÁLIDO OU INATIVO PARA ACESSO.");
+                txtEmail.setText("");
+                txtSenha.setText("");
+                txtEmail.requestFocus();
             }
         }//if de acesso ao sistema
-
     }//logar
 
     private void limpar() {
@@ -88,6 +80,38 @@ public class Login extends javax.swing.JFrame {
         Arrays.fill(senha, '0');
         txtEmail.requestFocus();
     }//limpar
+
+    private void acessarAcessoRestrito() {
+        String email = txtEmail.getText().trim();
+        char[] senha = txtSenha.getPassword();
+        String password = new String(senha);
+
+        if (email.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "PREENCHA O CAMPO E-MAIL.");
+            txtEmail.requestFocus();
+            return;
+        }
+
+        if (password.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "PREENCHA O CAMPO SENHA.");
+            txtSenha.requestFocus();
+            return;
+        }
+
+        if (!email.isEmpty() && !password.isEmpty()) {
+            if (bancoUsuarios.acessarTelaRestrita(email, password)) {
+                CadastroUsuarioUI cu = new CadastroUsuarioUI(this, bancoUsuarios);
+                cu.setVisible(true);
+                txtEmail.setText("");
+                txtSenha.setText("");
+            } else {
+                txtEmail.setText("");
+                txtEmail.requestFocus();
+                txtSenha.setText("");
+                JOptionPane.showMessageDialog(null, "ACESSO NEGADO.");
+            }
+        }
+    }//acessarAcessoRestrito
 
     /**
      * This method is called from within the constructor to initialize the form.
@@ -210,8 +234,7 @@ public class Login extends javax.swing.JFrame {
     }//GEN-LAST:event_btnLogarActionPerformed
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-        CadastroUsuario cu = new CadastroUsuario();
-        cu.setVisible(true);
+        acessarAcessoRestrito();
     }//GEN-LAST:event_jButton1ActionPerformed
 
     private void txtEmailKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_txtEmailKeyPressed
@@ -237,22 +260,17 @@ public class Login extends javax.swing.JFrame {
                 }
             }
         } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(Login.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(LoginUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(Login.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(LoginUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(Login.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(LoginUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         } catch (javax.swing.UnsupportedLookAndFeelException ex) {
-            java.util.logging.Logger.getLogger(Login.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(LoginUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
         //</editor-fold>
+        //</editor-fold>
 
-        /* Create and display the form */
-        java.awt.EventQueue.invokeLater(new Runnable() {
-            public void run() {
-                new Login().setVisible(true);
-            }
-        });
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables

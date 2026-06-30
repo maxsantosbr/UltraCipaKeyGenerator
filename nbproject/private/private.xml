@@ -3,8 +3,10 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/C:/Users/Maxwell/Documents/NetBeansProjects/UltraCipaKeyGenerator/src/conexao/Conexao.java</file>
-            <file>file:/C:/Users/Maxwell/Documents/NetBeansProjects/UltraCipaKeyGenerator/src/ui/CadastroUsuario.java</file>
+            <file>file:/C:/Users/Maxwell/Documents/NetBeansProjects/UltraCipaKeyGen/src/banco/BancoUsuarios.java</file>
+            <file>file:/C:/Users/Maxwell/Documents/NetBeansProjects/UltraCipaKeyGen/src/ui/LoginUI.java</file>
+            <file>file:/C:/Users/Maxwell/Documents/NetBeansProjects/UltraCipaKeyGen/src/ui/GeradorLicencaUI.java</file>
+            <file>file:/C:/Users/Maxwell/Documents/NetBeansProjects/UltraCipaKeyGen/src/ui/CadastroUsuarioUI.java</file>
         </group>
     </open-files>
 </project-private>
